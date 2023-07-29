@@ -1,15 +1,230 @@
 <!doctype html>
-<html lang="en">
+<html>
 
 <head>
-  <title></title>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <link href="css/style.css" rel="stylesheet" />
+  <title>Socket.IO chat</title>
+  <style>
+    body {
+      margin: 0;
+      padding-bottom: 3rem;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+        Helvetica, Arial, sans-serif;
+    }
+
+    #form {
+      background: rgba(0, 0, 0, 0.15);
+      padding: 0.25rem;
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      display: flex;
+      height: 3rem;
+      box-sizing: border-box;
+      backdrop-filter: blur(10px);
+    }
+
+    #input {
+      border: none;
+      padding: 0 1rem;
+      flex-grow: 1;
+      border-radius: 2rem;
+      margin: 0.25rem;
+    }
+
+    #input:focus {
+      outline: none;
+    }
+
+    #form>button {
+      background: #333;
+      border: none;
+      padding: 0 1rem;
+      margin: 0.25rem;
+      border-radius: 3px;
+      outline: none;
+      color: #fff;
+    }
+
+    #messages {
+      list-style-type: none;
+      margin: 0;
+      padding: 0;
+    }
+
+    #messages>li {
+      padding: 0.5rem 1rem;
+    }
+
+    #messages>li:nth-child(odd) {
+      background: #efefef;
+    }
+
+    #snackbar {
+      visibility: hidden;
+      /* Hidden by default. Visible on click */
+      min-width: 250px;
+      /* Set a default minimum width */
+      margin-left: -125px;
+      /* Divide value of min-width by 2 */
+      background-color: #333;
+      /* Black background color */
+      color: #fff;
+      /* White text color */
+      text-align: center;
+      /* Centered text */
+      border-radius: 2px;
+      /* Rounded borders */
+      padding: 16px;
+      /* Padding */
+      position: fixed;
+      /* Sit on top of the screen */
+      z-index: 1;
+      /* Add a z-index if needed */
+      left: 50%;
+      /* Center the snackbar */
+      bottom: 30px;
+      /* 30px from the bottom */
+    }
+
+    #snackbar.show {
+      visibility: visible;
+      /* Show the snackbar */
+      /* Add animation: Take 0.5 seconds to fade in and out the snackbar.
+  However, delay the fade out process for 2.5 seconds */
+      -webkit-animation:
+        fadein 0.5s,
+        fadeout 0.5s 2.5s;
+      animation:
+        fadein 0.5s,
+        fadeout 0.5s 2.5s;
+    }
+
+    /* Animations to fade the snackbar in and out */
+    @-webkit-keyframes fadein {
+      from {
+        bottom: 0;
+        opacity: 0;
+      }
+
+      to {
+        bottom: 30px;
+        opacity: 1;
+      }
+    }
+
+    @keyframes fadein {
+      from {
+        bottom: 0;
+        opacity: 0;
+      }
+
+      to {
+        bottom: 30px;
+        opacity: 1;
+      }
+    }
+
+    @-webkit-keyframes fadeout {
+      from {
+        bottom: 30px;
+        opacity: 1;
+      }
+
+      to {
+        bottom: 0;
+        opacity: 0;
+      }
+    }
+
+    @keyframes fadeout {
+      from {
+        bottom: 30px;
+        opacity: 1;
+      }
+
+      to {
+        bottom: 0;
+        opacity: 0;
+      }
+    }
+
+    #typing {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      display: flex;
+      height: 3rem;
+      box-sizing: border-box;
+      backdrop-filter: blur(10px);
+      justify-content: center;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+  </style>
 </head>
 
 <body>
-  Hello world
+  <input id="nickname" autocomplete="off" placeholder="Enter your nickname" />
+  <button id="setNickname">Set Nickname</button>
+  <ul id="messages"></ul>
+  <form id="form" action="">
+    <div id="typing"></div>
+    <input id="input" autocomplete="off" /><button>Send</button>
+  </form>
+  <div id="snackbar"></div>
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    var socket = io();
+    var form = document.getElementById("form");
+    var input = document.getElementById("input");
+    input.addEventListener("change", () => {
+      socket.emit("typing");
+    });
+    var nickname = document.getElementById("nickname");
+    var setNickname = document.getElementById("setNickname");
+    setNickname.addEventListener("click", () => {
+      if (nickname.value) socket.emit("set nickname", nickname.value);
+    });
+    var typing = document.getElementById("typing");
+    typing.style.display = "none";
+    socket.on("typing", (msg) => {
+      typing.style.display = "block";
+      typing.innerHTML = msg;
+      setTimeout(() => {
+        typing.style.display = "none";
+      }, 1000);
+    });
+
+    form.addEventListener("submit", function (e) {
+      e.preventDefault();
+      if (input.value) {
+        socket.emit("chat message", input.value);
+        var item = document.createElement("li");
+        item.textContent = input.value;
+        item.style.textAlign = "right";
+        messages.appendChild(item);
+        window.scrollTo(0, document.body.scrollHeight);
+        input.value = "";
+      }
+    });
+    socket.on("join", (msg) => {
+      var x = document.getElementById("snackbar");
+      x.innerHTML = msg;
+      x.className = "show";
+      setTimeout(function () {
+        x.className = x.className.replace("show", "");
+      }, 3000);
+    });
+
+    socket.on("chat message", function (msg) {
+      var item = document.createElement("li");
+      item.textContent = msg;
+      messages.appendChild(item);
+      window.scrollTo(0, document.body.scrollHeight);
+    });
+  </script>
 </body>
 
 </html>
